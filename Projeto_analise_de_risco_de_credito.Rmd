@@ -1,5 +1,6 @@
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
 ```
 
 
@@ -18,8 +19,34 @@ Aqui está a coleta de dados, neste caso um arquivo csv.
 ```{r coleta}
 # Coletando dados
 credit.df <- read.csv("credit_dataset.csv", header = TRUE, sep = ",")
+nomesDasColunas <- c("Pontuacao.de.credito", "Balanco.Patrimonial", "Duracao.em.meses.do.credito", "status.do.pagamento.de.credito", "Finalidade.do.credito", "Montante.de.credito", "Poupanca", "Duracao.do.Emprego", "Taxa.Prestacao", "Status.Conjugal", "Fiador", "Duracao.da.Residencia", "Ativos.Correntes", "Idade", "Outros.Creditos", "Tipo.de.Apartamento", "Credito.de.bancos", "Ocupacao", "Dependentes", "Telefone", "Trabalhador.estrangeiro")
+colnames(credit.df) <- nomesDasColunas
 ```
 
+```{r dicionario}
+glimpse(credit.df)                # Do Cliente:____________________________________________________
+# credit.rating                   - Pontuacao.de.credito                        - boolean 0 a 1
+# account.balance                 - Balanco.Patrimonial                         - 1 a 3
+# credit.duration.months          - Duracao.em.meses.do.credito                 - 4 a 72
+# previous.credit.payment.status  - status.do.pagamento.de.credito              - 1 a 3
+# credit.purpose                  - Finalidade.do.credito                       - 1 a 4
+# credit.amount                   - Montante.de.credito                         - 250 a 18.424
+# savings                         - Poupanca                                    - 1 a 4
+# employment.duration             - Duracao.do.Emprego                          - 1 a 4
+# installment.rate                - Taxa.Prestacao                              - 1 a 4
+# marital.status                  - Status.Conjugal                             - 1 a 4
+# guarantor                       - Fiador                                      - 1 a 2
+# residence.duration              - Duracao.da.Residencia                       - 1 a 4
+# current.assets                  - Ativos.Correntes                            - 1 a 4
+# age                             - Idade                                       - 19 a 75
+# other.credits                   - Outros.Creditos                             - 1 a 2
+# apartment.type                  - Tipo.de.Apartamento                         - 1 a 3
+# bank.credits                    - Credito.de.bancos                           - 1 a 2
+# occupation                      - Ocupacao                                    - 1 a 4
+# dependents                      - Dependentes                                 - 1 a 2
+# telephone                       - Telefone                                    - 1 a 2
+# foreign.worker                  - Trabalhador.estrangeiro                     - 1 a 2
+```
 
 ## Etapa 2 - Normalizando os Dados
 
@@ -43,15 +70,15 @@ scale.features <- function(df, variables){
 }
 
 # Normalizando as variáveis
-numeric.vars <- c("credit.duration.months", "age", "credit.amount")
+numeric.vars <- c("Duracao.em.meses.do.credito", "Idade", "Montante.de.credito")
 credit.df <- scale.features(credit.df, numeric.vars)
 
 # Variáveis do tipo fator
-categorical.vars <- c('credit.rating', 'account.balance', 'previous.credit.payment.status',
-                      'credit.purpose', 'savings', 'employment.duration', 'installment.rate',
-                      'marital.status', 'guarantor', 'residence.duration', 'current.assets',
-                      'other.credits', 'apartment.type', 'bank.credits', 'occupation', 
-                      'dependents', 'telephone', 'foreign.worker')
+categorical.vars <- c('Pontuacao.de.credito', 'Balanco.Patrimonial', 'status.do.pagamento.de.credito',
+                      'Finalidade.do.credito', 'Poupanca', 'Duracao.do.Emprego', 'Taxa.Prestacao',
+                      'Status.Conjugal', 'Fiador', 'Duracao.da.Residencia', 'Ativos.Correntes',
+                      'Outros.Creditos', 'Tipo.de.Apartamento', 'Credito.de.bancos', 'Ocupacao', 
+                      'Dependentes', 'Telefone', 'Trabalhador.estrangeiro')
 
 credit.df <- to.factors(df = credit.df, variables = categorical.vars)
 
@@ -65,6 +92,7 @@ credit.df <- to.factors(df = credit.df, variables = categorical.vars)
 # Dividindo os dados em treino e teste - 60:40 ratio
 indexes <- sample(1:nrow(credit.df), size = 0.6 * nrow(credit.df))
 train.data <- credit.df[indexes,]
+
 test.data <- credit.df[-indexes,]
 
 ```
@@ -117,7 +145,7 @@ test.feature.vars <- test.data[,-1]
 test.class.var <- test.data[,1]
 
 # Construindo um modelo de regressão logística
-formula.init <- "credit.rating ~ ."
+formula.init <- "Pontuacao.de.credito ~ ."
 formula.init <- as.formula(formula.init)
 lr.model <- glm(formula = formula.init, data = train.data, family = "binomial")
 
@@ -138,7 +166,7 @@ confusionMatrix(table(data = lr.predictions, reference = test.class.var), positi
 
 ```{r otimizando}
 ## Feature selection
-formula <- "credit.rating ~ ."
+formula <- "Pontuacao.de.credito ~ ."
 formula <- as.formula(formula)
 control <- trainControl(method = "repeatedcv", number = 10, repeats = 2)
 model <- train(formula, data = train.data, method = "glm", trControl = control)
@@ -147,7 +175,7 @@ plot(importance)
 
 
 # Construindo o modelo com as variáveis selecionadas
-formula.new <- "credit.rating ~ account.balance + credit.purpose + previous.credit.payment.status + savings + credit.duration.months"
+formula.new <- "Pontuacao.de.credito ~ Balanco.Patrimonial + Finalidade.do.credito + status.do.pagamento.de.credito + Poupanca + Duracao.em.meses.do.credito"
 formula.new <- as.formula(formula.new)
 lr.model.new <- glm(formula = formula.new, data = train.data, family = "binomial")
 
